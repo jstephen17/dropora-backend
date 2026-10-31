@@ -4,6 +4,8 @@ import cors from "cors";
 import "dotenv/config";
 
 import authRoutes from "./routes/auth.routes.js";
+import lockerRoutes from "./routes/locker.routes.js";
+
 
 import { supabase } from "./config/supabase.js";
 
@@ -65,6 +67,8 @@ app.get("/health", async (req, res) => {
 
 // Routes
 app.use("/api/auth", authRoutes);
+
+app.use("/api/locker", lockerRoutes);
 
 // Start server
 app.listen(PORT, () => {
