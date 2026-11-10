@@ -5,7 +5,7 @@ import "dotenv/config";
 
 import authRoutes from "./routes/auth.routes.js";
 import lockerRoutes from "./routes/locker.routes.js";
-
+import telemetryRoutes from "./routes/telemetry.routes.js";
 
 import { supabase } from "./config/supabase.js";
 
@@ -69,6 +69,9 @@ app.get("/health", async (req, res) => {
 app.use("/api/auth", authRoutes);
 
 app.use("/api/locker", lockerRoutes);
+
+
+app.use("/api/telemetry", telemetryRoutes);
 
 // Start server
 app.listen(PORT, () => {
