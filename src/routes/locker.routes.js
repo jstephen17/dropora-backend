@@ -340,4 +340,92 @@ router.post("/pair", async (req, res) => {
     }
 });
 
+// GET PAIRED DEVICES FOR AUTHENTICATED USER
+router.get("/paired", authenticate, async (req, res) => {
+    try {
+        const { data: lockers, error } = await req.supabase
+            .from("lockers")
+            .select("id, device_uuid, created_at, paired_at")
+            .eq("owner_id", req.user.id)
+            .not("paired_at", "is", null);
+
+        if (error) {
+            console.error("Paired devices retrieval error:", error);
+
+            return res.status(500).json({
+                error: "Unable to retrieve paired devices"
+            });
+        }
+
+        return res.status(200).json({
+            message: "Paired devices retrieved successfully",
+            total: lockers.length,
+            devices: lockers
+        });
+
+    } catch (error) {
+        console.error("Paired devices retrieval failed:", error);
+
+        return res.status(500).json({
+            error: "Internal server error"
+        });
+    }
+});
+
+
+// UNPAIR DEVICE
+router.delete("/unpair/:device_uuid", authenticate, async (req, res) => {
+    try {
+        const { device_uuid } = req.params;
+
+        // Validate device UUID
+        const uuidRegex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+        if (!uuidRegex.test(device_uuid)) {
+            return res.status(400).json({
+                error: "Invalid device UUID"
+            });
+        }
+
+        // Unpair only if the device belongs to the authenticated user
+        const { data: unpairedDevice, error } = await supabaseAdmin
+            .from("lockers")
+            .update({
+                owner_id: null,
+                paired_at: null
+            })
+            .eq("device_uuid", device_uuid)
+            .eq("owner_id", req.user.id)
+            .select("id, device_uuid")
+            .maybeSingle();
+
+        if (error) {
+            console.error("Device unpairing error:", error);
+
+            return res.status(500).json({
+                error: "Unable to unpair device"
+            });
+        }
+
+        if (!unpairedDevice) {
+            return res.status(404).json({
+                error: "Device not found or does not belong to your account"
+            });
+        }
+
+        return res.status(200).json({
+            message: "Device unpaired successfully",
+            device: unpairedDevice
+        });
+
+    } catch (error) {
+        console.error("Device unpairing failed:", error);
+
+        return res.status(500).json({
+            error: "Internal server error"
+        });
+    }
+});
+
 export default router;
