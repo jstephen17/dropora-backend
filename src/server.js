@@ -77,6 +77,6 @@ app.use("/api/telemetry", telemetryRoutes);
 app.use("/api/delivery", deliveryRoutes);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`Dropora API running on port ${PORT}`);
 });
