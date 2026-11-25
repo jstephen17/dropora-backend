@@ -72,7 +72,6 @@ app.use("/api/auth", authRoutes);
 
 app.use("/api/locker", lockerRoutes);
 
-
 app.use("/api/telemetry", telemetryRoutes);
 
 app.use("/api/delivery", deliveryRoutes);

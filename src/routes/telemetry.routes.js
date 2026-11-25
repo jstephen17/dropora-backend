@@ -11,9 +11,9 @@ router.post("/", async (req, res) => {
         const { device_uuid, recorded_at, payload } = req.body;
 
         // Validate required fields
-        if (!device_uuid || !recorded_at || payload === undefined) {
+        if (!device_uuid || payload === undefined) {
             return res.status(400).json({
-                error: "Device UUID, recorded_at, and payload are required"
+                error: "Device UUID and payload are required"
             });
         }
 
@@ -27,14 +27,20 @@ router.post("/", async (req, res) => {
             });
         }
 
-        // Validate timestamp
+        // Validate timestamp only if supplied
         if (
-            typeof recorded_at !== "string" ||
-            !Number.isFinite(Date.parse(recorded_at))
+            recorded_at !== undefined &&
+            recorded_at !== null &&
+            recorded_at !== ""
         ) {
-            return res.status(400).json({
-                error: "Invalid recorded_at timestamp"
-            });
+            if (
+                typeof recorded_at !== "string" ||
+                !Number.isFinite(Date.parse(recorded_at))
+            ) {
+                return res.status(400).json({
+                    error: "Invalid recorded_at timestamp"
+                });
+            }
         }
 
         // Validate JSON payload
@@ -77,15 +83,28 @@ router.post("/", async (req, res) => {
             });
         }
 
+        // Prepare telemetry record
+        const telemetryRecord = {
+            locker_id: locker.id,
+            payload
+        };
+
+        // Include recorded_at only when supplied
+        // Otherwise, PostgreSQL uses DEFAULT now()
+        if (
+            recorded_at !== undefined &&
+            recorded_at !== null &&
+            recorded_at !== ""
+        ) {
+            telemetryRecord.recorded_at =
+                new Date(recorded_at).toISOString();
+        }
+
         // Insert telemetry record
         const { data: telemetry, error: telemetryError } =
             await supabaseAdmin
                 .from("locker_telemetry")
-                .insert({
-                    locker_id: locker.id,
-                    recorded_at: new Date(recorded_at).toISOString(),
-                    payload
-                })
+                .insert(telemetryRecord)
                 .select("id, locker_id, recorded_at, received_at, payload")
                 .single();
 
@@ -110,6 +129,7 @@ router.post("/", async (req, res) => {
         });
     }
 });
+
 
 // GET LOCKER TELEMETRY WITH PAGINATION
 router.get("/:deviceUuid", authenticate, async (req, res) => {
