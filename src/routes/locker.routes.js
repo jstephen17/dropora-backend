@@ -428,4 +428,68 @@ router.delete("/unpair/:device_uuid", authenticate, async (req, res) => {
     }
 });
 
+
+// CHECK DEVICE PAIRING STATUS
+router.get("/device/:deviceUuid/pairing-status", async (req, res) => {
+    try {
+        const { deviceUuid } = req.params;
+
+        // Validate device UUID
+        const uuidRegex =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+        if (!uuidRegex.test(deviceUuid)) {
+            return res.status(400).json({
+                error: "Invalid device UUID"
+            });
+        }
+
+        // Find registered device
+        const { data: device, error: deviceError } =
+            await supabaseAdmin
+                .from("lockers")
+                .select("id, device_uuid, owner_id, paired_at")
+                .eq("device_uuid", deviceUuid)
+                .maybeSingle();
+
+        if (deviceError) {
+            console.error("Device pairing status lookup error:", deviceError);
+
+            return res.status(500).json({
+                error: "Unable to retrieve device pairing status"
+            });
+        }
+
+        // Device is not registered
+        if (!device) {
+            return res.status(404).json({
+                error: "Device is not registered",
+                registered: false,
+                paired: false
+            });
+        }
+
+        // Determine pairing status
+        const isPaired = device.owner_id !== null;
+
+        return res.status(200).json({
+            message: isPaired
+                ? "Device is paired"
+                : "Device is registered but not paired",
+
+            registered: true,
+            paired: isPaired,
+            paired_at: isPaired ? device.paired_at : null
+        });
+
+    } catch (error) {
+        console.error("Device pairing status error:", error);
+
+        return res.status(500).json({
+            error: "Internal server error"
+        });
+    }
+});
+
+
 export default router;
